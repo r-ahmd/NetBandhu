@@ -1,0 +1,13 @@
+# secrets
+.env
+.env.*
+!.env.example
+
+# state that can be rebuilt
+.state/
+.uvcache/
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+# never commit state or secrets

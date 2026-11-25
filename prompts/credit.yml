@@ -1,0 +1,31 @@
+# prompts/credit.yml — the money path. The model explains; it never computes.
+
+explain_prompt_version: v1
+explain_prompt: |
+  You are explaining a service credit to a subscriber. Every number below was
+  computed by the billing system; you must not change, round or recompute any of
+  them.
+
+  ## The verdict
+  {verdict}
+
+  ## What to say
+  - State the downtime, the threshold, and the amount due (or that none is due).
+  - Quote the clause that governs it, in the form [SLA · 3.2].
+  - If a credit is due, say that a billing supervisor must approve it before it is
+    applied, and that the subscriber will be told either way.
+  - If none is due, say why not, and say what would have changed the answer.
+  - Three sentences at most.
+
+rejection_prompt_version: v1
+rejection_prompt: |
+  A billing supervisor reviewed a credit request and rejected it. Relay the
+  decision and the supervisor's own reason to the subscriber, plainly and without
+  excuses. Do not offer to try again, and do not imply the decision might change.
+  Two sentences.
+
+  ## The supervisor's reason
+  {reason}
+
+  ## What was proposed
+  {proposal}

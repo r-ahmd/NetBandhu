@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NetBandhu — PortCity Broadband support</title>
+<style>
+  :root {
+    --ink: #14212e; --muted: #5c6b7a; --line: #d8dee4;
+    --green: #2e6b3f; --green-soft: #eef7f1; --red: #a33a2a; --red-soft: #fdf0ee;
+    --amber: #a86a12; --amber-soft: #fdf3e0; --bg: #fbfcfd;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+         color: var(--ink); background: var(--bg); }
+  header { padding: 14px 20px; border-bottom: 1px solid var(--line);
+           display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap;
+           background: #fff; position: sticky; top: 0; z-index: 5; }
+  header h1 { font-size: 17px; margin: 0; letter-spacing: .2px; }
+  header .sub { color: var(--muted); font-size: 12.5px; }
+  header .who { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+  select, button, input { font: inherit; }
+  select { padding: 5px 8px; border: 1px solid var(--line); border-radius: 6px; background: #fff; }
+  main { max-width: 780px; margin: 0 auto; padding: 20px 16px 140px; }
+  .msg { margin: 0 0 14px; }
+  .msg .who { font-size: 11.5px; text-transform: uppercase; letter-spacing: .07em;
+              color: var(--muted); margin-bottom: 4px; }
+  .bubble { padding: 11px 14px; border-radius: 10px; border: 1px solid var(--line);
+            background: #fff; white-space: pre-wrap; }
+  .me .bubble { background: var(--green-soft); border-color: #cfe6d8; }
+  .me { text-align: right; }
+  .me .who { text-align: right; }
+  .steps { margin: 2px 0 12px; padding-left: 14px; color: var(--muted); font-size: 13px;
+           list-style: none; }
+  .steps li::before { content: "· "; }
+  .cites { margin-top: 7px; display: flex; gap: 6px; flex-wrap: wrap; }
+  .cite { font-size: 12px; padding: 2px 7px; border-radius: 999px;
+          background: var(--green-soft); border: 1px solid #cfe6d8; color: var(--green); }
+  .refusal { border-left: 3px solid var(--amber); background: var(--amber-soft); }
+  .card { border: 1px solid var(--red); background: var(--red-soft); border-radius: 10px;
+          padding: 14px 16px; margin: 0 0 16px; }
+  .card h3 { margin: 0 0 10px; font-size: 14px; color: var(--red); }
+  .card dl { display: grid; grid-template-columns: 110px 1fr; gap: 5px 12px; margin: 0 0 12px; }
+  .card dt { color: var(--muted); font-size: 12.5px; }
+  .card dd { margin: 0; font-size: 13.5px; }
+  .card .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .card button { padding: 7px 13px; border-radius: 7px; border: 1px solid var(--red);
+                 background: var(--red); color: #fff; cursor: pointer; }
+  .card button.ghost { background: #fff; color: var(--red); }
+  .card input { padding: 6px 9px; border: 1px solid var(--line); border-radius: 6px; width: 110px; }
+  footer { position: fixed; bottom: 0; left: 0; right: 0; background: #fff;
+           border-top: 1px solid var(--line); padding: 12px 16px; }
+  footer form { max-width: 780px; margin: 0 auto; display: flex; gap: 9px; }
+  footer input[type=text] { flex: 1; padding: 10px 13px; border: 1px solid var(--line);
+                            border-radius: 9px; }
+  footer button { padding: 10px 18px; border-radius: 9px; border: 1px solid var(--green);
+                  background: var(--green); color: #fff; cursor: pointer; }
+  button:disabled { opacity: .5; cursor: default; }
+  .hint { max-width: 780px; margin: 6px auto 0; color: var(--muted); font-size: 12px; }
+  .err { color: var(--red); font-size: 13px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>NetBandhu</h1>
+  <span class="sub">PortCity Broadband · subscriber support</span>
+  <span class="who">
+    <label class="sub" for="who">Logged in as</label>
+    <select id="who"></select>
+  </span>
+</header>
+
+<main id="log"></main>
+
+<footer>
+  <form id="say">
+    <input id="text" type="text" autocomplete="off"
+           placeholder="My internet has been down since this morning…">
+    <button id="send" type="submit">Send</button>
+  </form>
+  <p class="hint">Try: “What plan am I on?” · “How is a service credit calculated?” ·
+     “My internet has been down since this morning. Am I owed anything?”</p>
+</footer>
+
+<script>
+const log = document.getElementById("log");
+const who = document.getElementById("who");
+const form = document.getElementById("say");
+const text = document.getElementById("text");
+const send = document.getElementById("send");
+let thread = "web-" + Math.random().toString(36).slice(2, 7);
+let queue = [];              // appends in order, one message at a time
+
+const esc = s => String(s).replace(/[&<>"]/g, c =>
+  ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+function add(role, html, cls = "") {
+  const el = document.createElement("div");
+  el.className = "msg " + (role === "me" ? "me" : "desk");
+  el.innerHTML = `<div class="who">${role === "me" ? "You" : "NetBandhu"}</div>
+                  <div class="bubble ${cls}">${html}</div>`;
+  log.appendChild(el);
+  el.scrollIntoView({ block: "end", behavior: "smooth" });
+  return el;
+}
+
+function stepsNode() {
+  const ul = document.createElement("ul");
+  ul.className = "steps";
+  log.appendChild(ul);
+  return ul;
+}
+
+async function loadSubscribers() {
+  const r = await fetch("/subscribers");
+  const data = await r.json();
+  who.innerHTML = Object.entries(data)
+    .map(([id, d]) => `<option value="${id}">${esc(d.name)} (${id})</option>`).join("");
+  who.value = "SUB-2041";
+}
+loadSubscribers();
+
+// ── the SSE read loop ────────────────────────────────────────────────────────
+async function run(url, body, placeholder) {
+  send.disabled = true;
+  const steps = stepsNode();
+  const bubble = add("desk", placeholder);
+  const out = bubble.querySelector(".bubble");
+
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok || !res.body) {
+    out.innerHTML = `<span class="err">${esc((await res.json().catch(() => ({}))).detail
+      || "request failed")}</span>`;
+    send.disabled = false;
+    return;
+  }
+
+  const reader = res.body.getReader();
+  const dec = new TextDecoder();
+  let buf = "", final = "";
+
+  while (true) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    buf += dec.decode(value, { stream: true });
+    const parts = buf.split("\n\n");
+    buf = parts.pop();
+    for (const part of parts) {
+      const line = part.split("\n").find(l => l.startsWith("data: "));
+      if (!line) continue;
+      const ev = JSON.parse(line.slice(6));
+      if (ev.type === "progress") {
+        const li = document.createElement("li");
+        li.textContent = ev.text;
+        steps.appendChild(li);
+      } else if (ev.type === "done") {
+        final = ev.answer;
+        out.textContent = final;
+        if (ev.refused) out.classList.add("refusal");
+        if (ev.citations?.length) {
+          const box = document.createElement("div");
+          box.className = "cites";
+          box.innerHTML = ev.citations
+            .map(c => `<span class="cite">${esc(c.document)} · ${esc(c.section)}</span>`)
+            .join("");
+          bubble.appendChild(box);
+        }
+      } else if (ev.type === "interrupt") {
+        out.remove();
+        bubble.remove();
+        showApproval(ev.payload);
+      } else if (ev.type === "error") {
+        out.innerHTML = `<span class="err">${esc(ev.message)}</span>`;
+      }
+    }
+  }
+  if (!final && !document.querySelector(".card")) out.remove();
+  if (!log.lastElementChild || log.lastElementChild.tagName === "UL") bubble.remove();
+  send.disabled = false;
+  text.focus();
+}
+
+// ── the approval card ────────────────────────────────────────────────────────
+function showApproval(payload) {
+  const p = payload.proposal || {};
+  const card = document.createElement("div");
+  card.className = "card";
+  card.innerHTML = `
+    <h3>Paused — a billing supervisor must decide</h3>
+    <dl>
+      ${Object.entries(p).map(([k, v]) =>
+        `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join("")}
+    </dl>
+    <div class="row">
+      <button data-a="approve">Approve</button>
+      <input id="editAmt" type="number" min="1" step="1" placeholder="amount">
+      <button data-a="edit" class="ghost">Edit amount</button>
+      <input id="rejReason" type="text" placeholder="reason if rejecting" style="width:200px">
+      <button data-a="reject" class="ghost">Reject</button>
+    </div>`;
+  log.appendChild(card);
+  card.scrollIntoView({ block: "end", behavior: "smooth" });
+
+  card.querySelectorAll("button").forEach(btn => {
+    btn.onclick = () => {
+      const action = btn.dataset.a;
+      const body = { thread_id: thread, action };
+      if (action === "edit") body.amount = Number(card.querySelector("#editAmt").value);
+      if (action === "reject") body.reason = card.querySelector("#rejReason").value;
+      card.remove();
+      run("/decide", body, "…");
+    };
+  });
+}
+
+// ── sending ──────────────────────────────────────────────────────────────────
+form.onsubmit = e => {
+  e.preventDefault();
+  const msg = text.value.trim();
+  if (!msg) return;
+  add("me", esc(msg));
+  text.value = "";
+  run("/chat", { message: msg, subscriber_id: who.value, thread_id: thread,
+                 now: "2026-06-14T14:00:00" }, "…");
+};
+
+who.onchange = () => {
+  thread = "web-" + Math.random().toString(36).slice(2, 7);
+  log.innerHTML = "";
+  add("desk", "You're signed in as " + esc(who.options[who.selectedIndex].text) + ".");
+};
+
+// a reload finds the paused run, so a supervisor can resume after a restart
+(async () => {
+  const r = await fetch(`/pending/${thread}`);
+  const d = await r.json();
+  if (d.paused && d.interrupt) showApproval(d.interrupt);
+})();
+</script>
+</body>
+</html>

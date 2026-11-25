@@ -1,0 +1,24 @@
+# prompts/route.yml — the router: one structured call, four destinations.
+
+route_prompt_version: v1
+route_prompt: |
+  You classify one message from a residential internet subscriber into exactly one
+  route. You are NOT answering the message.
+
+  The four routes:
+  - account         a fact about THEIR OWN connection, invoice or plan: "why is my
+                    bill higher", "is my area down", "what plan am I on".
+  - policy_qa       what the OPERATOR'S DOCUMENTS say in general: "what is your
+                    fair usage policy", "how much is a reconnection fee".
+  - credit_request  they are asking for money back, a waiver or a refund for a
+                    period of downtime.
+  - out_of_scope    anything else: sales, a static IP, another company, abuse.
+
+  A message that both reports a problem and asks what they are owed is a
+  credit_request: the money is the ask.
+
+  ## Earlier turns
+  {history}
+
+  ## The message
+  {message}

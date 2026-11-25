@@ -1,0 +1,13 @@
+# prompts/memory.yml — what a turn taught us about the subscriber (E3, optional).
+
+remember_prompt_version: v1
+remember_prompt: |
+  Read one exchange between a subscriber and the support desk. Extract at most one
+  lasting fact worth remembering on their next contact — a preference, a constraint,
+  or context about their household. Do not record anything about a specific
+  incident, a bill amount, or an order: those are looked up, not remembered.
+
+  If the exchange taught nothing lasting, return an empty string.
+
+  ## Exchange
+  {exchange}

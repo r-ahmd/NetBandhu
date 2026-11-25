@@ -1,0 +1,162 @@
+# NetBandhu's mock backend — the operator's own records.
+#
+# SHAPE (copied from the course's data/backend.yml, for the same reasons)
+#   Five collections, each a mapping. The KEY is the stable identifier — the
+#   thing a tool is handed and looks up — which is why entries here carry no
+#   `id:` field.
+#
+#   Dates are QUOTED, every one of them. Unquoted, PyYAML returns a
+#   datetime.date, and json.dumps then refuses to serialise it — which matters
+#   because a tool's return value is serialised on its way to the model.
+#
+#   Nothing here is real: an invented operator, invented streets, invented
+#   people, invented incidents.
+#
+# THE PLANTED EDGE CASES
+#   INC-8809  downtime 3h50m — BELOW the §3.1 four-hour threshold. Must earn
+#             nothing, and the answer must say so and say when it would qualify.
+#   INC-8812  downtime 5h20m — the demo incident. ৳1200/24 × 5.333 = ৳267.
+#   INC-8815  downtime 4h10m — just over the line, on the ৳1800 plan:
+#             ৳1800/24 × 4.1667 = ৳313.
+#   SUB-2077  has TWO incidents in one month, one credited already (INC-8801).
+#             A second request for INC-8801 must be answered as already credited.
+#   INV-88117 carries the ৳390 reconnection fee plus the ৳1200 plan = ৳1590.
+#   SUB-2041  the demo subscriber: one credited incident, one live one.
+#
+#   Every subscriber's `phone` is a fake 01X number. Emails are @example.com.
+
+plans:
+  HOME-20:
+    name: 20 Mbps Home
+    speed_mbps: 20
+    monthly_fee: 1200
+  HOME-40:
+    name: 40 Mbps Home
+    speed_mbps: 40
+    monthly_fee: 1800
+  HOME-100:
+    name: 100 Mbps Home
+    speed_mbps: 100
+    monthly_fee: 2800
+
+subscribers:
+  # Keyed by subscriber id — the string on the invoice and the support call.
+  # get_subscription also looks up by phone, because that is what people say.
+  SUB-2041:
+    name: Shilpa Akter
+    phone: "01812345678"
+    email: shilpa.akter@example.com
+    plan: HOME-20
+    node: AGRABAD-N3
+    address: "House 14, Road 3, Agrabad, Chattogram"
+    status: active
+    since: "2024-03-11"
+  SUB-2077:
+    name: Rakib Hasan
+    phone: "01898765432"
+    email: rakib.hasan@example.com
+    plan: HOME-40
+    node: NASIRABAD-N1
+    address: "Flat 5B, Nasirabad Housing, Chattogram"
+    status: active
+    since: "2023-08-02"
+  SUB-2103:
+    name: Farhana Islam
+    phone: "01711223344"
+    email: farhana.islam@example.com
+    plan: HOME-100
+    node: HALISHAHAR-N2
+    address: "House 9, Road 1, Halishahar, Chattogram"
+    status: suspended
+    since: "2022-01-19"
+  SUB-2150:
+    name: Jahangir Alam
+    phone: "01933445566"
+    email: jahangir.alam@example.com
+    plan: HOME-20
+    node: PAHARTALI-N4
+    address: "House 22, Pahartali, Chattogram"
+    status: active
+    since: "2025-06-30"
+
+outages:
+  # Keyed by incident id. `restored` is null while the incident is live.
+  # `downtime_hours` is NOT stored: check_sla computes it from the two stamps,
+  # so a hand-edited duration can never disagree with the times.
+  INC-8809:
+    node: PAHARTALI-N4
+    area: Pahartali
+    raised: "2026-06-02T09:10:00"
+    restored: "2026-06-02T13:00:00"
+    eta: "2026-06-02T13:00:00"
+    cause: "damaged drop cable"
+    affected: [SUB-2150]
+  INC-8812:
+    node: AGRABAD-N3
+    area: Agrabad
+    raised: "2026-06-14T08:40:00"
+    restored: null
+    eta: "2026-06-14T14:00:00"
+    cause: "damaged drop cable after monsoon squall"
+    affected: [SUB-2041]
+  INC-8815:
+    node: NASIRABAD-N1
+    area: Nasirabad
+    raised: "2026-06-14T07:20:00"
+    restored: "2026-06-14T11:30:00"
+    eta: "2026-06-14T12:00:00"
+    cause: "optical network unit failure"
+    affected: [SUB-2077]
+  INC-8801:
+    node: NASIRABAD-N1
+    area: Nasirabad
+    raised: "2026-06-05T18:00:00"
+    restored: "2026-06-05T23:30:00"
+    eta: "2026-06-05T23:00:00"
+    cause: "fibre cut, third-party road works"
+    affected: [SUB-2077]
+
+invoices:
+  # Keyed by invoice id. Rendered from these line items by get_invoice.
+  INV-88117:
+    subscriber: SUB-2041
+    period: "2026-06"
+    issued: "2026-06-03"
+    due: "2026-06-17"
+    items:
+      - {description: "20 Mbps Home plan, June 2026", amount: 1200}
+      - {description: "Reconnection fee (Terms §7.1)", amount: 390}
+  INV-88140:
+    subscriber: SUB-2077
+    period: "2026-06"
+    issued: "2026-06-03"
+    due: "2026-06-17"
+    items:
+      - {description: "40 Mbps Home plan, June 2026", amount: 1800}
+      - {description: "Service credit, INC-8801 (SLA §3.2)", amount: -412}
+  INV-88152:
+    subscriber: SUB-2150
+    period: "2026-06"
+    issued: "2026-06-03"
+    due: "2026-06-17"
+    items:
+      - {description: "20 Mbps Home plan, June 2026", amount: 1200}
+
+credits:
+  # The ledger's seed: credits already applied before the desk existed. The
+  # runtime ledger (.state/credits.jsonl) is appended to, never rewritten.
+  # (subscriber, incident) is the idempotency key — SLA §3.5.
+  - id: CR-1001
+    subscriber: SUB-2077
+    incident: INC-8801
+    amount: 412
+    clause: "SLA §3.2"
+    approved_by: "billing supervisor"
+    applied: "2026-06-05"
+  - id: CR-1002
+    subscriber: SUB-2041
+    incident: INC-8808
+    amount: 150
+    clause: "SLA §3.2"
+    approved_by: "billing supervisor"
+    applied: "2026-05-19"

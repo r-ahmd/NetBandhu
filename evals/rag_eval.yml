@@ -1,0 +1,80 @@
+# evals/rag_eval.yml — the scorecard, as data.
+#
+# Three kinds, each measuring something that fails differently:
+#   answerable: true   a passage states the rule; the answer must cite it
+#   answerable: false  the corpus does not cover it; the answer must be the REFUSAL
+#   boundary: true     the arithmetic case: 3h50m must earn nothing, 4h10m must earn
+# The `expect_section` is the clause a correct citation names. It is what makes
+# "citation accuracy" a number rather than an opinion.
+
+- id: RAG-01
+  question: When is a service credit due?
+  answerable: true
+  expect_section: "3.1"
+  expect_document: SLA
+
+- id: RAG-02
+  question: How is the service credit calculated?
+  answerable: true
+  expect_section: "3.2"
+  expect_document: SLA
+
+- id: RAG-03
+  question: How much is the reconnection fee?
+  answerable: true
+  expect_section: "7.1"
+  expect_document: Terms
+
+- id: RAG-04
+  question: Can I get a static IP address on a home connection?
+  answerable: true
+  expect_section: "4.1"
+  expect_document: Fees
+
+- id: RAG-05
+  question: What happens if I use the connection for resale?
+  answerable: true
+  expect_section: "3.3"
+  expect_document: FUP
+
+- id: RAG-06
+  question: Does scheduled maintenance count as downtime?
+  answerable: true
+  expect_section: "4.1"
+  expect_document: SLA
+
+- id: RAG-07
+  question: How long do I have to dispute an invoice?
+  answerable: true
+  expect_section: "2.4"
+  expect_document: Terms
+
+- id: RAG-08
+  question: What is the late payment fee?
+  answerable: true
+  # The corpus states this fee twice on purpose — Terms §2.2 defines it and §7.3
+  # prices it. Either citation is correct, so the case accepts a set.
+  expect_any:
+    - [Terms, "2.2"]
+    - [Terms, "7.3"]
+
+- id: RAG-09
+  question: Do you offer a 5G mobile plan?
+  answerable: false
+
+- id: RAG-10
+  question: What is your policy on torrenting?
+  answerable: false
+
+- id: RAG-11
+  question: Can I get a refund in cash instead of a bill credit?
+  # ANSWERABLE, and the first run taught me so: §3.3 states credits are never paid
+  # in cash. It was filed as unanswerable, so a correct, cited "no" scored as a
+  # failure — the test was wrong, not the desk.
+  answerable: true
+  expect_section: "3.3"
+  expect_document: SLA
+
+- id: RAG-12
+  question: Who is the CEO of PortCity Broadband?
+  answerable: false
