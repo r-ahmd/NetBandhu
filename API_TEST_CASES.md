@@ -36,7 +36,7 @@ filesystem to a server. None of that changes the graph.
 ## 0b · Before you start
 
 ```bash
-cd "/media/mr/Free Space/Thesis 8th sem/DSeek-workspace1/NetBandhu"
+cd "/Industrial_Training/NetBandhu"
 uv sync                                   # once; also after any dependency change
 uv run uvicorn api:app --port 8077        # then open http://127.0.0.1:8077/docs
 ```
