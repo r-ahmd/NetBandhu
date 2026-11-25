@@ -76,18 +76,6 @@ here, and the reason is in the code beside it.
    moved with nothing but the seed. A number that changes when nothing changed is not
    a measurement.
 
-## Two bugs the demo found, kept as tests
-
-- **A thread's state outlives its turn.** A follow-up turn inherited the previous
-  turn's `answer`, and the router sent it straight to `respond` with yesterday's
-  reply — "can I have the credit again?" got the old approval sentence. `intake` now
-  clears the per-turn keys; `messages` and `subscriber_id` are *not* cleared, because
-  they are the thread.
-- **A rail that covered one of two paths is not a rail.** The content filter was a
-  `@wrap_tool_call` hook, which fires only when the *agent* calls a tool. The credit
-  desk calls `check_sla` directly from a node, so the first adversarial run walked
-  past it into the credit branch. `screen()` is now a function that `intake` calls
-  for every turn, and the middleware keeps it for tool calls.
 
 ## The money rule, in one place
 
@@ -123,10 +111,9 @@ and deciding a thread that is not paused is `409`.
 
 ### Test it by hand
 
-**Testing by hand:** [API_TEST_CASES.md](API_TEST_CASES.md) — 25 cases for the
-Swagger UI at `/docs`, each with the exact request body, the expected status *and
-value*, and what it proves. 21 of them were executed against a live server and the
-results are recorded in the file.
+**Testing by hand:** 25 cases for the Swagger UI at `/docs`, each with the exact 
+request body, the expected status *and value*, and what it proves. 21 of them 
+were executed against a live server and the results are recorded in the file.
 
 **Two things to know:** embedded Qdrant locks its folder, so the server and a test run
 cannot hold the collection at the same time. Stop the server before `pytest`, or the
@@ -155,5 +142,4 @@ tests/         the money rules, the rails, and the HTTP contract
 api.py         the HTTP surface: /chat (SSE), /decide, /pending
 static/        index.html — the chat page, no build step
 cli.py         chat, /pending, /approve, /edit, /reject
-demo.py        the scripted demo
 ```
